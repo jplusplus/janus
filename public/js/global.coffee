@@ -12,26 +12,26 @@ class dfw.SearchWidget extends Widget
 		]
 
 		@UIS = {
-			'searchFormInput': '.form-search input'
+			'searchFormInput': '.form-search input',
+			'resultsHolder': '.search-results pre'
 		}
 
 		@options = {
-			searchAPI: '/search/'
+			searchAPI: '/search'
 		}
 		@cache = {
 		}
 
 	bindUI: (ui) =>
 		super
+		@uis.searchFormInput.submit @search
 
 	search: (e) =>
-		params = {
-			domain: @uis.searchFormInput.text(),
-			filetype: ["pdf"]
-		}
+		e.preventDefault();
+		domain = @uis.searchFormInput.val();
+		api_url = "#{@options.searchAPI}/#{domain}/"  
 		$.ajax
 			type: 'GET'
-			url: @options.searchAPI
-			data: JSON.stringify(params)
-			success: (data) ->
+			url: api_url
+			success: (data) =>
 				@uis.resultsHolder.append(data)
