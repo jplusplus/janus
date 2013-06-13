@@ -1,4 +1,4 @@
-# Document from website
+# Document from domains
 ## How to install it 
 - be sure to have nodeJS installed on your computer
 - get the sources
