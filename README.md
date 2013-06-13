@@ -9,3 +9,10 @@
     cd documents-from-website
     npm install
   ```
+- copy the configuration file template
+
+  ```
+  cp config.template.json config.json 
+  ```
+- then enter your bing account key 
+
