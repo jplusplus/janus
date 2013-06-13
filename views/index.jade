@@ -1,16 +1,16 @@
 extends layout
 block content
-  .row-fluid.search-bar
-    h1= title
-    p Welcome to #{title}. To use this tools just enter a domain in the search field bellow. 
-
   .SearchWidget.widget(data-widget="dfw.SearchWidget")
-    .form-search
-      input.search-query.span4(type="text", placeholder="ex:jplusplus.org")
-      a.btn.do(href="#", data-action="search")
-        | Search&nbsp;
-        i.icon-search
+    .row-fluid.search-bar
+      h1= title
+      p Welcome to #{title}. To use this tools just enter a domain in the search field bellow. 
 
-  .row-fluid.search-results
-    .result-holder
-      pre
+      form.form-search
+        input.search-query.span4(type="text", placeholder="ex:jplusplus.org")
+        button.btn.do(href="#", data-action="search")
+          | Search&nbsp;
+          i.icon-search
+
+    .row-fluid.search-results
+      .result-holder
+        pre
