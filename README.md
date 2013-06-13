@@ -16,3 +16,10 @@
   ```
 - then enter your bing account key 
 
+## Launch the application
+You can simply launch it by executing ```coffee app.coffe``` but I recommend you to use nodemon:
+```
+npm install -g nodemon
+nodemon app.coffee
+``` 
+
