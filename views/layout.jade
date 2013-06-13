@@ -1,0 +1,22 @@
+doctype 5
+html
+  head
+    title= title
+    != css('bootstrap.min')
+    != css('bootstrap-responsive.min')
+    != css('style.css')
+
+    block extraCSS
+  body
+    .container-fluid
+        block content
+
+    != js('vendor/jquery-1.7.1.min')
+    != js('vendor/widget')
+    != js('global')
+    != js('vendor/bootstrap.min')
+
+    script(language="javascript")
+      $(window).load(function(){
+        window.serious.Widget.bindAll()
+      });
