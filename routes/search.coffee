@@ -2,9 +2,19 @@
 # Here is the search API
 ###
 # Module variables
+
+config = require(__dirname + '/../config.json');
+
 app = undefined
+bingAccountKey = undefined
 module.exports = (a) ->
   app = a
+  if config
+    bingAccountKey = config.bingAccountKey
+    if bingAccountKey is "ENTER YOUR KEY HERE"
+      throw new Error("Please make sure to change your key in config.json")
+  else
+    throw new Error('Config file doesn\'t exist, please create it from the config.template.json')
   # app.get "/search/", showHelp
   app.get "/search/:json", search
 
