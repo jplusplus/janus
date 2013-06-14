@@ -10,4 +10,4 @@ module.exports = (a) ->
   require('./search') app
 
 rootPage = (req, res) ->
-  res.render('index', { title: 'Document From Website' })
+  res.render('index', { title: 'Janus: Documents from domain' })

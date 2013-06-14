@@ -31,7 +31,7 @@ module.exports = (a) ->
 search = (req, response) ->
   domain = req.params.domain
   if !domain
-    res.respond(500, 'You have to specify a domain')
+    res.respond(500, 'Please specify a domain (e.g. jplusplus.org)')
 
   params = {
     domain: req.params.domain
@@ -100,7 +100,7 @@ getQueryForType = (type, domain) ->
   if type is 'image'
     bingRequestPoint = "Image"
     queries = [
-      { site:domain, filetype: type, ext: type}
+      { site:domain }
     ]
   if type is 'doc'
     queries = [
@@ -136,4 +136,4 @@ getQueryForType = (type, domain) ->
 
 
 showHelp = (req, res) ->
-  res.render('help', {title: "Help about Document from Website"})
+  res.render('help', {title: "About Documents from domain"})

@@ -39,6 +39,14 @@ exports.getMetadata = function (file, callback) {
 	/* Default callback function: console.log */
 	callback = typeof callback !== 'undefined' ? callback : function(data) {console.log(data);};
 
+	/* Check that file exists */
+	var fs = require('fs');
+	if (!fs.existsSync(file.path)) {
+		error = new Error("Could not find file "+ file.path);
+		callback(error);
+		return;
+	}
+
 	/* Get Metadata */
 	var PDF = require('pdfinfo');
 	if ( !PDF ){
