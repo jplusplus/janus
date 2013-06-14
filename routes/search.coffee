@@ -54,12 +54,15 @@ search = (req, response) ->
 
     for file in files
       do(file,metas=metas) ->
-        core.getMetaData file, (file, meta, error, _metas=metas)->
+        core.getMetaData file, (error,file, meta, _metas=metas)->
+          console.log("getMetaData callback: recieved meta = ", meta)
           if error is undefined
             if meta
               _metas.push(meta)
             else
               console.log("Failed to get #{file.url} meta data")
+          else
+            console.log('An error occured when retrieving meta data: ', error)
 
     response.send metas
 
