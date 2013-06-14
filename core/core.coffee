@@ -1,18 +1,18 @@
-SUPPORTED_FILE_TYPES = []
-PROCESSORS = []
+class Core
 
-fs = require('fs')
-http = require('http')
+  constructor: ()->
+    @SUPPORTED_FILE_TYPES = ['pdf']
+    @PROCESSORS = []
+    # we create FileProcessors here and store them in an array
+    for type in @SUPPORTED_FILE_TYPES
+      
+      do(_type=type, me=this)->
+        processor = FileProcessorFactory.prototype.newFileProcessor(_type)
+        me.PROCESSORS[_type] = processor
 
-module.exports = () ->
-  SUPPORTED_FILE_TYPES = ['pdf']
-  # we create FileProcessors here and store them in an array
-  for type in SUPPORTED_FILE_TYPES
-    do(_type=type)->
-      processor = FileProcessorFactory.registerFileProcessor(_type)
-      PROCESSORS[_type] = processor;
+  getSupportedFileTypes: () =>
+    return @SUPPORTED_FILE_TYPES
 
-exports.getMetaData = (remote_file, callback)->
   ### 
   Entry point of the core module
   ```
@@ -31,46 +31,46 @@ exports.getMetaData = (remote_file, callback)->
       meta: the metadata extracted
       error: if extraction had failed then this variable will be set
   ###  
-  
-  if file.url is undefined
-    error = new Exception('The file url must be filled')
-  if file.type is undefined
-    error new Exception('The file type must be filled')
+  getMetaData: (remote_file, callback) =>
+    # console.log('getMetaData(',remote_file,')')
+    me = this
+    if remote_file.url is undefined
+      error = new ReferenceError('The file url must be filled')
+    if remote_file.type is undefined
+      error = new ReferenceError('The file type must be filled')
 
-  if error is undefined 
-    downloadFile remote_file, (tmp_file, _callback=callback)->
-      getMetaDataFromFile tmp_file, (meta, error, path=tmp_file.path, _callback=_callback)->
-        if error is undefined
-          fs.unlinkSync(path)
-        _callback(meta, error)
-  else
-    _callback(undefined, error)
+    if error is undefined 
+      me.downloadFile remote_file, (tmp_file, _me=me) ->
+        # console.log('downloadFile callback, file:',tmp_file)
+        _me.getMetaDataFromFile tmp_file, (meta, error, path=tmp_file.path)=>
+          if error is undefined
+            fs.unlinkSync(path)
+          callback(meta, error)
+    else
+      callback(undefined, error)
 
+  getMetaDataFromFile: (file, callback)=>
+    processor = @PROCESSORS[file.type]
+    if processor is undefined
+      error = new Error("Could not find the appropriated for your filetype: #{file.type}")
+      callback(undefined, error)
+    else 
+      processor.getMetaData(file, callback)
 
-getMetaDataFromFile = (file, callback)->
-  processor = PROCESSORS[file.type]
-  if processor is undefined
-    error = new Exception("Could not find the appropriated for your filetype: #{file.type}")
-    callback(undefined, error)
-  else 
-    processor.getMetaData(file, callback)
+  downloadFile: (file, callback) =>
+    url = file.url
+    url_splitted = url.split('/')
+    file_name = url_splitted[url_splitted.length - 1]
+    tmp_folder = "#{__dirname}/../tmp/"
+    tmp_path  = "#{tmp_folder}#{file_name}"
+    # console.log(tmp_path)
 
-downloadFile = (file, callback) ->
-  url = file.url
-  url_splitted = url.split('/')
-  file_name = url_splitted[url_splitted.length - 1]
-  tmp_folder = "#{__dirname}/../tmp/"
-  tmp_path  = "#{tmp_folder}#{file_name}"
-  console.log(tmp_path)
+    stream = fs.createWriteStream(tmp_path)
+    request = http.get url, (res,_file=file)->
+      res.pipe(stream)
+      # _file.path = tmp_path
+      callback(_file)
 
-  file = fs.createWriteStream(tmp_path)
-  request = http.get url, (res, _cb = callback)->
-    res.pipe(file)
-    _cb({path: tmp_path, type: file.type, url:url, domain: file.domain })
-
-
-exports.getSupportedFilesTypes = () ->
-  return SUPPORTED_FILE_TYPES
 
 class FileProcessor
   getMetaData: (path, callback)=>
@@ -82,14 +82,27 @@ class FileProcessor
 
 
 class PdfFileProcessor extends FileProcessor
-  getMetaData: (path, callback)=>
-    
+  getMetaData: (file, callback)=>
+    meta = {}    
+    error = undefined
+    callback(file, meta, error)
 
 
-
-class FileProcessorFactory 
+class FileProcessorFactory
   newFileProcessor: (type) ->
-    if type == "pdf"
+    if type is "pdf"
       return new PdfFileProcessor()
 
+
+fs = undefined
+http = undefined
+core_instance = undefined
+module.exports = ()->
+  if !fs
+    fs =  require('fs')
+  if !http
+    http =  require('http')
+  if core_instance is undefined
+    core_instance = new Core()
+  return core_instance
 
