@@ -5,13 +5,14 @@
 
 config = require(__dirname + '/../config.json')
 
-core = require(__dirname + '/../core/core')
 request = require('request')
+core = require(__dirname + '/../core/core')()
 b = undefined
 app = undefined
 bingAccountKey = undefined
 
 module.exports = (a) ->
+  # console.log(core.getSupportedFileTypes())
   app = a
   # We check configuration 
   if !bingAccountKey
@@ -34,72 +35,53 @@ search = (req, response) ->
 
   params = {
     domain: req.params.domain
-    filetypes: ['pdf']
-    # filetypes: core.getSupportedFileTypes()
+    filetypes: core.getSupportedFileTypes()
   }
   # b.search "#{req.params.domain} filetype:pdf", (er, res, bod)->
     # response.send(bod)
-  bingRequest params, (files) ->
-    results = []
+  bingRequest params, (results, type, domain) ->
+    files = []
+    metas = []
+    for result in results
+      do(_r=result, _f=files, _type=type, _domain=domain)->
+        file = {
+          url: _r.Url
+          type: _type
+          domain: _domain
+        }
+        # console.log('file: ', file);
+        _f.push(file)
+
     for file in files
-      core.getMetaData file, (meta, error, _results=results)->
-        if error is undefined
-          if meta
-            _results.push(meta)
-          else
-            console.log("Failed to get #{file.url} meta data")
+      do(file,metas=metas) ->
+        core.getMetaData file, (file, meta, error, _metas=metas)->
+          if error is undefined
+            if meta
+              _metas.push(meta)
+            else
+              console.log("Failed to get #{file.url} meta data")
 
+    response.send metas
 
-    response.send results
-
-
-
-
-getQueryForType = (type, domain) ->
-  query = {}
-  if ['jpg','pdf'].indexOf(type) != -1
-    query.site = domain 
-    query.filetype = type
-  return query
-
-buildBingRequest = (params) ->
-  # Queries that will be passed to bing to retrieve the list of files we want
-  queries = []
+bingRequest = (params, callback) ->
+  # console.log(params)
   domain = params.domain
-  for filetype in params.filetypes
-    do(type=filetype,_queries=queries,_domain=domain) ->
-      query = getQueryForType(type,_domain)
-      _queries.push query
+  for type in params.filetypes
+    do(_type=type,_domain=domain)->
+      query = buildBingRequest(_type, _domain)
+      request query, (error, res, body)->
+        results = JSON.parse(body).d.results
+        callback results, _type, _domain
 
-  queryStrings = for query in queries
-    do(_query=query) ->
-      queryString = for key, val of query
-        do(_key=key, _val=val)->
-          return "#{key}:#{val}"
-      return queryString.join('%20')
-
-  queryString = "%27" + queryStrings.join('%20OR%20')  + "%27"
-
-  GETParams = {
-    '$format':'json'
-    '$top': 50
-    '$skip': 0
-    'Query': queryString
-  }
-
-  paramsStrings = for paramKey, paramValue  of GETParams
-    "#{paramKey}=#{paramValue}"
-  # console.log('paramsStrings: ', paramsStrings)
-
-  paramsString = paramsStrings.join('&')
+buildBingRequest = (type, domain) ->
+  # Queries that will be passed to bing to retrieve the list of files we want
+  queryString = getQueryForType(type, domain)
+  # console.log("buildBingRequest() -  queryString = #{queryString}")
   encodedKey = new Buffer("#{bingAccountKey}:#{bingAccountKey}").toString('base64')
-  # console.log('encoded key: ', encodedKey)
-
-
 
   options = {
     'method': 'GET', 
-    'uri': "https://api.datamarket.azure.com/Bing/Search/Web?#{paramsString}"
+    'uri': "https://api.datamarket.azure.com/Bing/Search/#{queryString}"
     'headers': {
       'Authorization': "Basic #{encodedKey}",
     }
@@ -107,10 +89,48 @@ buildBingRequest = (params) ->
   # console.log('options:', options);
   return options
 
-bingRequest = (params, callback) ->
-  options = buildBingRequest(params)
-  request options, (error, res, body) ->
-    callback(body)
+getQueryForType = (type, domain) ->
+  # console.log('getQueryForType(',type,',',domain, ')')
+  bingQueryString = undefined
+  queries = []
+  bingRequestPoint = "Web"
+  if type is 'image'
+    bingRequestPoint = "Image"
+    queries = [
+      { site:domain, filetype: type, ext: type}
+    ]
+  if type is 'doc'
+    queries = [
+      { site:domain, filetype: type, ext: type}
+    ]
+  if type is 'pdf'
+    queries = [
+      { site:domain, filetype: type}
+    ]
+  queryStrings = for query in queries
+    do(_query=query) ->
+      queryString = for key, val of query
+        do(_key=key, _val=val)->
+          return "#{key}:#{val}"
+      return queryString.join('%20')
+
+  queryString = queryStrings.join('%20OR%20')
+
+  GETParams = {
+    '$format':'json'
+    '$top': 50
+    '$skip': 0
+    'Query': "%27#{queryString}%27"
+  }
+
+  paramsStrings = for paramKey, paramValue of GETParams
+    "#{paramKey}=#{paramValue}"
+  paramsString = paramsStrings.join('&')
+  bingQueryString = "#{bingRequestPoint}?#{paramsString}"
+
+  return bingQueryString
+
+
 
 showHelp = (req, res) ->
   res.render('help', {title: "Help about Document from Website"})
