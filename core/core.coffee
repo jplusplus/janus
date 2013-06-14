@@ -64,9 +64,12 @@ class Core
     tmp_folder = "#{__dirname}/../tmp/"
     tmp_path  = "#{tmp_folder}#{file_name}"
     # console.log(tmp_path)
+    req = http
+    if url.indexOf('https://') != -1
+      req = https 
 
     stream = fs.createWriteStream(tmp_path)
-    request = http.get url, (res,_file=file)->
+    request = req.get url, (res,_file=file)->
       res.pipe(stream)
       # _file.path = tmp_path
       callback(_file)
@@ -96,12 +99,15 @@ class FileProcessorFactory
 
 fs = undefined
 http = undefined
+https = undefined
 core_instance = undefined
 module.exports = ()->
   if !fs
-    fs =  require('fs')
+    fs = require('fs')
   if !http
-    http =  require('http')
+    http = require('http')
+  if !https 
+    https = require('https')
   if core_instance is undefined
     core_instance = new Core()
   return core_instance
