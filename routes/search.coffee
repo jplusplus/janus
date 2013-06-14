@@ -39,8 +39,19 @@ search = (req, response) ->
   }
   # b.search "#{req.params.domain} filetype:pdf", (er, res, bod)->
     # response.send(bod)
-  bingRequest params, (res) ->
-    response.send(res)
+  bingRequest params, (files) ->
+    results = []
+    for file in files
+      core.getMetaData file, (meta, error, _results=results)->
+        if error is undefined
+          if meta
+            _results.push(meta)
+          else
+            console.log("Failed to get #{file.url} meta data")
+
+
+    response.send results
+
 
 
 
@@ -78,11 +89,11 @@ buildBingRequest = (params) ->
 
   paramsStrings = for paramKey, paramValue  of GETParams
     "#{paramKey}=#{paramValue}"
-  console.log('paramsStrings: ', paramsStrings)
+  # console.log('paramsStrings: ', paramsStrings)
 
   paramsString = paramsStrings.join('&')
   encodedKey = new Buffer("#{bingAccountKey}:#{bingAccountKey}").toString('base64')
-  console.log('encoded key: ', encodedKey)
+  # console.log('encoded key: ', encodedKey)
 
 
 
@@ -93,7 +104,7 @@ buildBingRequest = (params) ->
       'Authorization': "Basic #{encodedKey}",
     }
   }
-  console.log('options:', options);
+  # console.log('options:', options);
   return options
 
 bingRequest = (params, callback) ->
