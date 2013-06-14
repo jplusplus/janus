@@ -42,10 +42,10 @@ class Core
     if error is undefined 
       me.downloadFile remote_file, (tmp_file, _me=me) ->
         # console.log('downloadFile callback, file:',tmp_file)
-        _me.getMetaDataFromFile tmp_file, (meta, error, path=tmp_file.path)=>
+        _me.getMetaDataFromFile tmp_file, (error, file, meta)=>
           if error is undefined
-            fs.unlinkSync(path)
-          callback(meta, error)
+            fs.unlinkSync(file.path)
+          callback(error, file, meta)
     else
       callback(undefined, error)
 
@@ -71,7 +71,7 @@ class Core
     stream = fs.createWriteStream(tmp_path)
     request = req.get url, (res,_file=file)->
       res.pipe(stream)
-      # _file.path = tmp_path
+      _file.path = tmp_path
       callback(_file)
 
 
@@ -83,18 +83,10 @@ class FileProcessor
     ###
 
 
-
-class PdfFileProcessor extends FileProcessor
-  getMetaData: (file, callback)=>
-    meta = {}    
-    error = undefined
-    callback(file, meta, error)
-
-
 class FileProcessorFactory
   newFileProcessor: (type) ->
     if type is "pdf"
-      return new PdfFileProcessor()
+      return require('./pdf')
 
 
 fs = undefined
