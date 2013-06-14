@@ -39,32 +39,35 @@ search = (req, response) ->
   }
   # b.search "#{req.params.domain} filetype:pdf", (er, res, bod)->
     # response.send(bod)
-  bingRequest params, (results, type, domain) ->
-    files = []
-    metas = []
-    for result in results
-      do(_r=result, _f=files, _type=type, _domain=domain)->
-        file = {
-          url: _r.Url
-          type: _type
-          domain: _domain
-        }
-        # console.log('file: ', file);
-        _f.push(file)
+  bingRequest params, (error, results=[], type, domain, _response=response) ->
+    if error
+      _response.send error
+    else 
+      files = []
+      metas = []
+      for result in results
+        do(_r=result, _f=files, _type=type, _domain=domain)->
+          file = {
+            url: _r.Url
+            type: _type
+            domain: _domain
+          }
+          _f.push(file)
 
-    for file in files
-      do(file,metas=metas) ->
-        core.getMetaData file, (error,file, meta, _metas=metas)->
-          console.log("getMetaData callback: recieved meta = ", meta)
-          if error is undefined
-            if meta
-              _metas.push(meta)
+      for file in files
+        do(file,metas=metas) ->
+          core.getMetaData file, (error,file, meta, _metas=metas)->
+            console.log("getMetaData callback: recieved meta = ", meta)
+            if error is undefined
+              if meta
+                console.log('Succeded, got this meta:', meta)
+                _metas.push(meta)
+              else
+                console.log("Failed to get #{file.url} meta data")
             else
-              console.log("Failed to get #{file.url} meta data")
-          else
-            console.log('An error occured when retrieving meta data: ', error)
+              console.log('An error occured when retrieving meta data: ', error)
 
-    response.send metas
+      _response.send metas
 
 bingRequest = (params, callback) ->
   # console.log(params)
@@ -72,9 +75,17 @@ bingRequest = (params, callback) ->
   for type in params.filetypes
     do(_type=type,_domain=domain)->
       query = buildBingRequest(_type, _domain)
+      # console.log('query: ', query);
       request query, (error, res, body)->
-        results = JSON.parse(body).d.results
-        callback results, _type, _domain
+        if error is null || error is undefined
+          if body
+            results = JSON.parse(body).d.results
+          else 
+            results = []
+          callback error, results, _type, _domain
+        else
+          console.log('An error occured while requestring bing:', error)
+          callback error 
 
 buildBingRequest = (type, domain) ->
   # Queries that will be passed to bing to retrieve the list of files we want
@@ -86,7 +97,8 @@ buildBingRequest = (type, domain) ->
     'method': 'GET', 
     'uri': "https://api.datamarket.azure.com/Bing/Search/#{queryString}"
     'headers': {
-      'Authorization': "Basic #{encodedKey}",
+      'Authorization': "Basic #{encodedKey}"
+      rejectUnauthorized: false 
     }
   }
   # console.log('options:', options);
