@@ -16,6 +16,8 @@
   ```
 - then enter your bing account key 
 
+The server will need to have pdfinfo, exiv2 and wv installed. 
+
 ## Launch the application
 You can simply launch it by executing ```coffee app.coffe``` but I recommend you to use nodemon:
 ```
