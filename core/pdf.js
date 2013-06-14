@@ -23,7 +23,7 @@ var specialTags = {
 
 /* getMetadata( file [, callback] )             */
 /* Will call callback( error, file, data );     */
-exports.getMetadata = function (file, callback) {
+exports.getMetaData = function (file, callback) {
 
 	var error;
 

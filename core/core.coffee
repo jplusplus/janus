@@ -74,15 +74,6 @@ class Core
       _file.path = tmp_path
       callback(_file)
 
-
-class FileProcessor
-  getMetaData: (path, callback)=>
-    ###
-    # This method is just a signature, have to be implemented in inherited classes
-    # @see PdfFileProcessor
-    ###
-
-
 class FileProcessorFactory
   newFileProcessor: (type) ->
     if type is "pdf"
