@@ -97,7 +97,7 @@ getQueryForType = (type, domain) ->
   if type is 'image'
     bingRequestPoint = "Image"
     queries = [
-      { site:domain, filetype: type, ext: type}
+      { site:domain }
     ]
   if type is 'doc'
     queries = [
