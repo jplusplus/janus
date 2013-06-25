@@ -1,11 +1,11 @@
 # Namespace configuration for widgets:
-window.dfw = {}
+window.janus = {}
 
 Widget = window.serious.Widget
 
 
 
-class dfw.SearchWidget extends Widget
+class janus.SearchWidget extends Widget
 	constructor: ->
 		@ACTIONS = [
 			'search'
@@ -34,4 +34,5 @@ class dfw.SearchWidget extends Widget
 			type: 'GET'
 			url: api_url
 			success: (data) =>
-				@uis.resultsHolder.append(data)
+				str = JSON.stringify(data)
+				@uis.resultsHolder.text str 
