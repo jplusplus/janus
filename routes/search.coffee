@@ -6,13 +6,13 @@
 config = require(__dirname + '/../config.json')
 
 request = require('request')
+async = require('async')
 core = require(__dirname + '/../core/core')()
 b = undefined
 app = undefined
 bingAccountKey = undefined
 
 module.exports = (a) ->
-  # console.log(core.getSupportedFileTypes())
   app = a
   # We check configuration 
   if !bingAccountKey
@@ -22,7 +22,6 @@ module.exports = (a) ->
         throw new Exception("Please make sure to change your key in config.json")
     else
       throw new Exception('Config file doesn\'t exist, please create it from the config.template.json')
-  
   # app.get "/search/", showHelp
 
   app.get "/search/:domain", search
@@ -31,66 +30,70 @@ module.exports = (a) ->
 search = (req, response) ->
   domain = req.params.domain
   if !domain
-    res.respond(500, 'Please specify a domain (e.g. jplusplus.org)')
-
-  params = {
-    domain: req.params.domain
-    filetypes: core.getSupportedFileTypes()
-  }
-  # b.search "#{req.params.domain} filetype:pdf", (er, res, bod)->
-    # response.send(bod)
-  bingRequest params, (error, results=[], type, domain, _response=response) ->
-    if error
-      _response.send error
-    else 
-      files = []
-      metas = []
-      for result in results
-        do(_r=result, _f=files, _type=type, _domain=domain)->
-          file = {
-            url: _r.Url
-            type: _type
-            domain: _domain
-          }
-          _f.push(file)
-
-      for file in files
-        do(file,metas=metas) ->
-          core.getMetaData file, (error,file, meta, _metas=metas)->
-            console.log("getMetaData callback: recieved meta = ", meta)
-            if error is undefined
-              if meta
-                console.log('Succeded, got this meta:', meta)
-                _metas.push(meta)
-              else
-                console.log("Failed to get #{file.url} meta data")
-            else
-              console.log('An error occured when retrieving meta data: ', error)
-
-      _response.send metas
-
-bingRequest = (params, callback) ->
-  # console.log(params)
-  domain = params.domain
-  for type in params.filetypes
-    do(_type=type,_domain=domain)->
-      query = buildBingRequest(_type, _domain)
-      # console.log('query: ', query);
-      request query, (error, res, body)->
-        if error is null || error is undefined
-          if body
-            results = JSON.parse(body).d.results
-          else 
-            results = []
-          callback error, results, _type, _domain
+    response.send(500, 'Please specify a domain (e.g. jplusplus.org)')
+  else 
+    async.waterfall([
+      (onFilesFound)->
+        searchFiles domain, onFilesFound
+      (files, callback)->
+        core.collectMetaData files, callback
+      ],
+      (error, files)->
+        if error is null
+            response.send(files)
         else
-          console.log('An error occured while requestring bing:', error)
-          callback error 
+          response.send(500, error)
+      )
+
+searchFiles = (domain, complete)->
+  files = []
+  async.waterfall([
+    (doQuery)->
+      filetypes = core.getSupportedFileTypes()
+      doQuery null, domain, type for type in filetypes
+    ,
+    # doQuery
+    (domain, type, handleBingResults)->
+      query = buildBingRequest(type, domain)
+      bingRequest query, type, domain, handleBingResults
+    ,
+    # handleBingResults
+    (results, type, domain, callback)->
+      async.map(results
+        , (result, add_to_files)->
+            file = {
+              url: result.Url
+              type: type
+              domain: domain
+            }
+            # can add some validation stuff maybe 
+            add_to_files(null, file)
+        , callback)
+    ],
+    (error, files)->
+      complete(error, files)
+  )
+bingRequest = (query, type, domain, complete) ->
+  async.waterfall([
+    (callback)->
+      request query, callback
+    ,
+    (res, body, callback)->
+      # console.log('request cb', body)
+      if body
+        results = JSON.parse(body).d.results
+      else
+        retults = []
+      callback(null, results)
+  ],
+  (error, results)->
+    # console.log('bingRequest last cb: ', results, type, domain)
+    complete(error, results, type, domain)
+  )
 
 buildBingRequest = (type, domain) ->
   # Queries that will be passed to bing to retrieve the list of files we want
   queryString = getQueryForType(type, domain)
-  # console.log("buildBingRequest() -  queryString = #{queryString}")
   encodedKey = new Buffer("#{bingAccountKey}:#{bingAccountKey}").toString('base64')
 
   options = {
@@ -101,11 +104,9 @@ buildBingRequest = (type, domain) ->
       rejectUnauthorized: false 
     }
   }
-  # console.log('options:', options);
   return options
 
 getQueryForType = (type, domain) ->
-  # console.log('getQueryForType(',type,',',domain, ')')
   bingQueryString = undefined
   queries = []
   bingRequestPoint = "Web"
