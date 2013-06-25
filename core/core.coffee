@@ -1,3 +1,5 @@
+async = require('async')
+
 class Core
 
   constructor: ()->
@@ -5,7 +7,6 @@ class Core
     @PROCESSORS = []
     # we create FileProcessors here and store them in an array
     for type in @SUPPORTED_FILE_TYPES
-      
       do(_type=type, me=this)->
         processor = FileProcessorFactory.prototype.newFileProcessor(_type)
         me.PROCESSORS[_type] = processor
@@ -13,73 +14,104 @@ class Core
   getSupportedFileTypes: () =>
     return @SUPPORTED_FILE_TYPES
 
+
   ### 
   Entry point of the core module
   ```
   core require('core/core') 
-  core.getMetaData(file, callback)
+  core.collectMetaData(file, callback)
   ```
-  @param remote_file
-    The file object:
-    {
-       url: the url of the file to extract meta data
-       type: the type of the file to analyse
-    }
-  @param callback
-    the callback to call when meta data has been retrieved by the core module
-    take 2 parameters: 
-      meta: the metadata extracted
-      error: if extraction had failed then this variable will be set
-  ###  
-  getMetaData: (remote_file, callback) =>
-    # console.log('getMetaData(',remote_file,')')
+  ###
+  collectMetaData:(files, complete) =>
     me = this
-    if remote_file.url is undefined
-      error = new ReferenceError('The file url must be filled')
-    if remote_file.type is undefined
-      error = new ReferenceError('The file type must be filled')
+    async.waterfall [
+      (callback) ->
+        me.downloadFiles(files, callback)
+      ,
+      (downloaded_files, callback)->
+        me.checkDownloadedFiles(downloaded_files, callback)
+      ,
+      (checked_files, callback)->
+        me.getMetaData(checked_files, callback)
+    ],
+    (err, metas)->
+      complete(err, metas)
 
-    if error is undefined 
-      me.downloadFile remote_file, (tmp_file, _me=me) ->
-        # console.log('downloadFile callback, file:',tmp_file)
-        _me.getMetaDataFromFile tmp_file, (error, file, meta)=>
-          if error is undefined
-            fs.unlinkSync(file.path)
-          callback(error, file, meta)
-    else
-      callback(undefined, error)
+  downloadFiles: (files, complete) =>
+    me = this
+    async.map(files, me.downloadFile, complete)
 
-  getMetaDataFromFile: (file, callback)=>
-    processor = @PROCESSORS[file.type]
-    if processor is undefined
-      error = new Error("Could not find the appropriated for your filetype: #{file.type}")
-      callback(undefined, error)
-    else 
-      processor.getMetaData(file, callback)
+  checkDownloadedFiles: (files, complete) =>
+    me = this
+    async.filter(files, me.checkFile, (res)->
+      complete(null, res)
+    )
+
+  checkFile:(file, filter)=>
+    async.waterfall [
+      (callback)->
+        fs.stat(file.path, callback)
+      , 
+      (stats, callback) ->
+        callback(null, (stats.size > 0))
+      ], 
+      (err, accepted)->
+        if err
+          accepted = false
+        if !accepted
+          fs.unlinkSync file.path
+        filter(accepted)
 
   downloadFile: (file, callback) =>
+    request = require('request')
     url = file.url
     url_splitted = url.split('/')
     file_name = url_splitted[url_splitted.length - 1]
-    tmp_folder = "#{__dirname}/../tmp/"
-    tmp_path  = "#{tmp_folder}#{file_name}"
-    # console.log(tmp_path)
-    req = http
-    if url.indexOf('https://') != -1
-      req = https 
+    tmp_path = "#{__dirname}/../tmp/#{file_name}"
+    fake_agent = {
+      "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11",
+    }
+    if !fs.existsSync(tmp_path)
+      out = fs.createWriteStream(tmp_path)
+      req = request({
+        method: 'GET'
+        uri: url
+        headers: fake_agent
+      })
+      req.pipe(out)
+      req.on 'end', (err,cb=callback)->
+        file.path = tmp_path
+        cb(null, file)
+    else
+      file.path = tmp_path
+      callback(null, file)
 
-    stream = fs.createWriteStream(tmp_path)
-    request = req.get url, (res,_file=file)->
-      res.pipe(stream)
-      _file.path = tmp_path
-      callback(_file)
+  getMetaData: (files, complete) =>
+    me = this 
+    async.map files, me.getMetaDataFromFile, complete
+
+  getMetaDataFromFile: (file, callback) =>
+    type = file.type
+    processor = @PROCESSORS[type]
+    if processor is undefined
+      error = new Error("Could not find the appropriated for your filetype: #{type}")
+      callback(error)
+    else
+      processor.getMetaData(file, 
+        (error, _file, _data) ->
+          fs.unlinkSync file.path 
+          out = file: _file, meta: _data
+          callback(error, out)
+      )
+
+  
 
 class FileProcessorFactory
   newFileProcessor: (type) ->
     if type is "pdf"
       return require('./pdf')
 
-
+# Enter point for the module, returns an instance of Core class. 
 fs = undefined
 http = undefined
 https = undefined
