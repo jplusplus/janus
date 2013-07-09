@@ -3,7 +3,7 @@
 ## Extract metadata from PDFs, fast
 Janus is a simple tool to extract all meta data from all PDF files on a single domain. Type in a domain name, for instance "gov.uk", and get a list of all PDFs with their metadata (e.g. Author, creation and modification date). Metadata analysis is a great source of information for investigative journalists.
 In the future, Janus will include other data types and go further in the analysis, clustering metadata together (like individuals who appear in the metadata).
-It was developed by Journalism++' [http://twitter.com/toutenrab](Pierre Bellon) and [http://twitter.com/leo_wallentin](Leo Wallentin), who was an embedded news nerd there in June, 2013.
+It was developed by Journalism++' [Pierre Bellon](http://twitter.com/toutenrab) and [Leo Wallentin](http://twitter.com/leo_wallentin), who was an embedded news nerd there in June, 2013.
 
 ## How to install it 
 - be sure to have nodeJS installed on your computer
