@@ -9,3 +9,6 @@ body {
 a {
   color: #00B7FF;
 }
+.template {
+  display: none;
+}
