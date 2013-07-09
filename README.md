@@ -1,4 +1,4 @@
-# Document from domains
+# Documents from domains
 ## How to install it 
 - be sure to have nodeJS installed on your computer
 - get the sources
@@ -6,7 +6,7 @@
 - install the dependencies
 
   ```
-    cd documents-from-website
+    cd documents-from-domains
     npm install
   ```
 - copy the configuration file template
