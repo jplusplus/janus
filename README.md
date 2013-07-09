@@ -29,3 +29,6 @@ nodemon app.coffee
 - I get an error when I run npm install
   | You may have an older version of node, please make sure to have node >= 9.4.1 installed on your system
 
+## TODO
+- handle images search
+- handle doc & docx search 
