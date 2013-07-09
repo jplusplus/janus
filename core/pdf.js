@@ -48,7 +48,7 @@ exports.getMetaData = function (file, callback) {
 	}
 
 	/* Get Metadata */
-	var PDF = require('pdfinfo');
+	var PDF = require('./pdfinfo');
 	if ( !PDF ){
 		error = new Error("Failed to load the pdfinfo library.")
 		callback(error);
