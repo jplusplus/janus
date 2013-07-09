@@ -8,7 +8,6 @@
   "dependencies": {
     "express": "3.0.1",
     "jade": "0.28.1",
-    "pdfinfo":"0.0.2",
     "coffee-script": "1.6.1",
     "connect-assets": "2.4.0",
     "request": "2.21.0",
