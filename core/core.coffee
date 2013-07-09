@@ -31,7 +31,6 @@ class Core
       (callback)->
         # we get the meta from the files that are present in cache 
         async.filter remote_files, me.checkFromCache, (files_from_cache)->
-          console.log('filter from cache cb - nb files_from_cache: ', files_from_cache.length)
           me.getMetaFromCache(files_from_cache, callback)
       ,
       (callback)->
@@ -93,8 +92,6 @@ class Core
   downloadFile: (file, callback) =>
     url = file.url
     url_splitted = url.split('/')
-    # console.log("downloadFile(#{file.url})");
-
     file_name = url_splitted[url_splitted.length - 1]
     tmp_path = "#{__dirname}/../tmp/#{file_name}"
     fake_agent = {
