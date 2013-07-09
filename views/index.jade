@@ -1,7 +1,7 @@
 extends layout
 block content
   .SearchWidget.widget(data-widget="janus.SearchWidget")
-    .row-fluid.search-bar
+    .row-fluid.search-bar.header 
       h1= title
       p Welcome to Janus. Please enter a domain to scan for files.
 
@@ -13,4 +13,26 @@ block content
 
     .row-fluid.search-results
       .result-holder
-        pre
+        table.table.table-striped
+          tr.header 
+            th Filename
+            th Type
+            th Author
+            th Tags
+            th Software
+            th 
+
+          tr.template.result.hidden
+            td.out.filename
+            td.out.type
+            td.out.person
+            td.out.tags
+            td.out.software
+            td.link
+              a(href)
+                | Remote File &nbsp;
+                i.icon-download
+
+          tr.template.empty-results.hidden 
+            td(colspan=5)
+              | We couldn't found any document on your domain, please try another one
