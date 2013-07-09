@@ -1,4 +1,6 @@
 async = require('async')
+cache = require('memory-cache')
+request = require('request')
 
 class Core
 
@@ -17,59 +19,86 @@ class Core
 
   ### 
   Entry point of the core module
-  ```
-  core require('core/core') 
-  core.collectMetaData(file, callback)
-  ```
+  @param remote_files
+
+  @usage: 
+    core require('core/core') 
+    core.collectMetaData(file, callback)
   ###
-  collectMetaData:(files, complete) =>
+  collectMetaData:(remote_files, complete) =>
     me = this
-    async.waterfall [
-      (callback) ->
-        me.downloadFiles(files, callback)
+    async.parallel([
+      (callback)->
+        # we get the meta from the files that are present in cache 
+        async.filter remote_files, me.checkFromCache, (files_from_cache)->
+          console.log('filter from cache cb - nb files_from_cache: ', files_from_cache.length)
+          me.getMetaFromCache(files_from_cache, callback)
       ,
-      (downloaded_files, callback)->
-        me.checkDownloadedFiles(downloaded_files, callback)
-      ,
-      (checked_files, callback)->
-        me.getMetaData(checked_files, callback)
-    ],
-    (err, metas)->
-      complete(err, metas)
+      (callback)->
+        # and from the files that aren't in cache 
+        async.reject remote_files, me.checkFromCache, (files_not_in_cache) ->
+          me.getMetaFromRemoteFiles(files_not_in_cache, callback)
+      ],
+      (err, results)->
+        concat_results = results[0].concat(results[1])
+        complete(null, concat_results)
+      )
 
-  downloadFiles: (files, complete) =>
-    me = this
-    async.map(files, me.downloadFile, complete)
+  checkFromCache: (file, filter) =>
+    filter(cache.get(file.url) != null)
 
-  checkDownloadedFiles: (files, complete) =>
+  getMetaFromCache: (files, complete) =>
     me = this
-    async.filter(files, me.checkFile, (res)->
-      complete(null, res)
+    async.map files, 
+      (file, add_to_metas)->
+        meta = cache.get(file.url)
+        add_to_metas(null, meta)
+      , complete
+
+  getMetaFromRemoteFiles: (remote_files, complete) =>
+    me = this
+    async.waterfall(
+      [
+        (callback)->
+          # we download every remote file
+          async.map remote_files, me.downloadFile, callback
+        ,
+        # check every file to see if file is missing or empty 
+        me.checkFiles
+      ],
+      (files)->
+          # we get every meta data from downloaded & checked files
+          async.map files, me.getMetaDataFromFile, complete
     )
+  checkFiles: (files, complete) =>
+    me = this
+    async.filter files, me.checkFile, complete
 
   checkFile:(file, filter)=>
-    async.waterfall [
+    path = file.path
+    async.waterfall([
       (callback)->
-        fs.stat(file.path, callback)
-      , 
-      (stats, callback) ->
-        callback(null, (stats.size > 0))
-      ], 
-      (err, accepted)->
-        if err
-          accepted = false
-        if !accepted
-          fs.unlinkSync file.path
-        filter(accepted)
+        fs.exists path, (exists)-> callback(null, exists)
+      ,
+      (exists, callback)->
+        if !exists
+          filter(exists)
+        else
+          fs.stat path, callback
+    ],
+      (error, stats)->
+        filter((stats.size > 0))
+    )
 
   downloadFile: (file, callback) =>
-    request = require('request')
     url = file.url
     url_splitted = url.split('/')
+    # console.log("downloadFile(#{file.url})");
+
     file_name = url_splitted[url_splitted.length - 1]
     tmp_path = "#{__dirname}/../tmp/#{file_name}"
     fake_agent = {
-      "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11",
+      "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.97 Safari/537.11"
     }
     if !fs.existsSync(tmp_path)
       out = fs.createWriteStream(tmp_path)
@@ -86,10 +115,6 @@ class Core
       file.path = tmp_path
       callback(null, file)
 
-  getMetaData: (files, complete) =>
-    me = this 
-    async.map files, me.getMetaDataFromFile, complete
-
   getMetaDataFromFile: (file, callback) =>
     type = file.type
     processor = @PROCESSORS[type]
@@ -97,10 +122,11 @@ class Core
       error = new Error("Could not find the appropriated for your filetype: #{type}")
       callback(error)
     else
-      processor.getMetaData(file, 
-        (error, _file, _data) ->
+      processor.getMetaData(file,
+        (error, file, data) ->
           fs.unlinkSync file.path 
-          out = file: _file, meta: _data
+          out = file: file, meta: data
+          cache.put(file.url, out)
           callback(error, out)
       )
 
@@ -126,4 +152,3 @@ module.exports = ()->
   if core_instance is undefined
     core_instance = new Core()
   return core_instance
-
