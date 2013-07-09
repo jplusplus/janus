@@ -12,3 +12,21 @@ a {
 .template {
   display: none;
 }
+
+.results-holder {
+  position: relative;
+}
+
+.js-loading:after{
+  position: relative;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0.3, 0.3, 0.3, 0.7);
+  content: "Loading";
+  color: white;
+  font-size: 2em;
+}
+
+
