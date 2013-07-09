@@ -1,0 +1,39 @@
+{
+  "name": "pdfinfo",
+  "version": "0.0.2",
+  "description": "simple api for reading pdf meta info via xpdf's pdfinfo(1)",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecarter/node-pdfinfo"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "should": "*",
+    "mocha": "*"
+  },
+  "keywords": [
+    "pdf",
+    "xpdf",
+    "pdfinfo",
+    "meta",
+    "postscript"
+  ],
+  "author": {
+    "name": "Erin Carter"
+  },
+  "license": "MIT",
+  "readmeFilename": "README.md",
+  "readme": "# node-pdfinfo\n\nA simple api for reading pdf meta info via [xpdf's](http://www.foolabs.com/xpdf) `pdfinfo(1)`.\n\n## Requires\n\n* [Node.js](http://nodejs.org)\n* [npm](http://npmjs.org) _node package manager_\n* [xpdf](http://www.foolabs.com/xpdf) / `pdfinfo(1)`\n\n## Install\n\n    $ git clone https://github.com/ecarter/node-pdfinfo.git\n    $ cd node-pdfinfo\n    $ npm install\n\n## Example\n\n    var PDF = require('pdfinfo');\n\n    var pdf = PDF('test/pdf/basic.pdf');\n\n    pdf.info(function(err, meta){\n      if (err) throw err;\n      console.log('pdf info', meta)\n    })\n\n## License\n\nMIT\n\n",
+  "bugs": {
+    "url": "https://github.com/ecarter/node-pdfinfo/issues"
+  },
+  "_id": "pdfinfo@0.0.2",
+  "_from": "pdfinfo@0.0.2"
+}
