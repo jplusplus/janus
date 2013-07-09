@@ -4,7 +4,7 @@
 # Module variables
 
 config = require(__dirname + '/../config.json')
-
+cache = require('memory-cache')
 request = require('request')
 async = require('async')
 core = require(__dirname + '/../core/core')()
@@ -31,7 +31,7 @@ search = (req, response) ->
   domain = req.params.domain
   if !domain
     response.send(500, 'Please specify a domain (e.g. jplusplus.org)')
-  else 
+  else
     async.waterfall([
       (onFilesFound)->
         searchFiles domain, onFilesFound
@@ -47,32 +47,47 @@ search = (req, response) ->
 
 searchFiles = (domain, complete)->
   files = []
-  async.waterfall([
-    (doQuery)->
-      filetypes = core.getSupportedFileTypes()
-      doQuery null, domain, type for type in filetypes
+  
+  async.series([
+    # we try to get the results from the cache
+    (fallback)->
+      results = cache.get(domain)
+      if results
+        complete(null, results)
+      else
+        fallback()
     ,
-    # doQuery
-    (domain, type, handleBingResults)->
-      query = buildBingRequest(type, domain)
-      bingRequest query, type, domain, handleBingResults
-    ,
-    # handleBingResults
-    (results, type, domain, callback)->
-      async.map(results
-        , (result, add_to_files)->
-            file = {
-              url: result.Url
-              type: type
-              domain: domain
-            }
-            # can add some validation stuff maybe 
-            add_to_files(null, file)
-        , callback)
-    ],
-    (error, files)->
-      complete(error, files)
-  )
+    # or we call the core
+    ()->
+      async.waterfall([
+        (doQuery)->
+          filetypes = core.getSupportedFileTypes()
+          doQuery null, domain, type for type in filetypes
+        ,
+        # doQuery
+        (domain, type, handleBingResults)->
+          query = buildBingRequest(type, domain)
+          bingRequest query, type, domain, handleBingResults
+        ,
+        # handleBingResults
+        (results, type, domain, callback)->
+          async.map(results
+            , (result, add_to_files)->
+                file = {
+                  url: result.Url
+                  type: type
+                  domain: domain
+                }
+                # can add some validation stuff maybe 
+                add_to_files(null, file)
+            , callback)
+        ],
+        (error, files)->
+          cache.put(domain, files)
+          complete(error, files)
+      )
+  ])
+  
 bingRequest = (query, type, domain, complete) ->
   async.waterfall([
     (callback)->
