@@ -1,4 +1,10 @@
-# Documents from domains
+# Janus
+
+## Extract metadata from PDFs, fast
+Janus is a simple tool to extract all meta data from all PDF files on a single domain. Type in a domain name, for instance "gov.uk", and get a list of all PDFs with their metadata (e.g. Author, creation and modification date). Metadata analysis is a great source of information for investigative journalists.
+In the future, Janus will include other data types and go further in the analysis, clustering metadata together (like individuals who appear in the metadata).
+It was developed by Journalism++' [http://twitter.com/toutenrab](Pierre Bellon) and [http://twitter.com/leo_wallentin](Leo Wallentin), who was an embedded news nerd there in June, 2013.
+
 ## How to install it 
 - be sure to have nodeJS installed on your computer
 - get the sources
@@ -6,7 +12,7 @@
 - install the dependencies
 
   ```
-    cd documents-from-domains
+    cd janus
     npm install
   ```
 - copy the configuration file template
@@ -15,8 +21,6 @@
   cp config.template.json config.json 
   ```
 - then enter your bing account key 
-
-The server will need to have pdfinfo, exiv2 and wv installed. 
 
 ## Launch the application
 You can simply launch it by executing ```coffee app.coffe``` but I recommend you to use nodemon:
